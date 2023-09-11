@@ -1,0 +1,73 @@
+<h2>Thread synchronization</h2>
+<div class="step-text">
+<p>Concurrent use of shared data by multiple threads may cause unexpected or erroneous behavior. Fortunately, Kotlin allows us to control the access of multiple threads to a shared resource of any type. The solution is <strong>thread synchronization</strong>. </p><h5 id="important-terms-and-concepts">Important terms and concepts</h5><p>Before we start using synchronization in our code, let's introduce the necessary terms and concepts.</p><p><strong>1) Thread synchronization </strong>is a mechanism which ensures that two or more concurrent threads do not simultaneously execute a code segment called a critical section.</p><p><strong>2) A critical section</strong> is a region of code that accesses shared resources and should not be executed by more than one thread at the same time. A shared resource may be a variable, file, input/output port, database, or something else.</p><p>Let's consider an example. Let some class <code class="language-kotlin">Counter</code> have a field named <code class="language-kotlin">count</code>:</p><pre><code class="language-kotlin">class Counter {
+    var count = 0
+
+    fun inc() {
+        count++
+    }
+}</code></pre><p>Two threads concurrently increment the field (increase it by 1) 10 000 000 times.</p><pre><code class="language-kotlin">import kotlin.concurrent.thread
+
+fun main() {
+    val counterInstance = Counter()
+    val thread1 = thread(block = {
+        for (i in 1..10_000_000) {
+            counterInstance.inc();
+        }
+    })
+    val thread2 = thread(block = {
+        for (i in 1..10_000_000) {
+            counterInstance.inc();
+        }
+    })
+    thread1.join()
+    thread2.join()
+    println("The result of the threads' work: ${counterInstance.count}")
+}</code></pre><p>The final value should be 20 000 000. However, when the program ends its work, we have a different, wrong result, for example, 18 696 438.</p><pre><code class="language-no-highlight">The result of the threads' work: 18696438</code></pre><p>This happens because sometimes a thread does not see the changes of shared data made by another thread, and sometimes a thread may see an intermediate value of a non-atomic operation. Those are examples of visibility and atomicity problems we deal with while working with shared data.</p><p>That is why increasing a value by multiple threads is a <strong>critical section</strong>. Of course, this example is very simple, and a critical section may be way more complex.</p><h5 id="code-synchronizing">Code synchronizing</h5><p>The "classic" and simplest way to protect code from being concurrently accessed by multiple threads involves using synchronized methods.</p><p>There are two different forms of synchronization:</p><ul><li><p>synchronized function (we use the annotation <code class="language-kotlin">@Synchronized</code>):</p></li></ul><pre><code class="language-kotlin">@Synchronized fun myFunction() {
+    //do something
+}
+</code></pre><p>Note that <strong>annotations</strong> are a means of attaching metadata to code; in the following topics, you will learn more about them. For now, just remember that <code class="language-kotlin">@Synchronized</code> is an easy way to tell the compiler that a method can only be used by one thread at a time.</p><ul><li><p>synchronized blocks or statements (we use the function <code class="language-kotlin">synchronized()</code>):</p></li></ul><pre><code class="language-kotlin"> fun myOtherFunction() {
+ 
+    // a synchronized block
+    synchronized(this) {
+         // block's code
+    }
+}</code></pre><p>A synchronized function or block needs an object for locking threads. Only one thread can execute code in a synchronized block or method at the same time. Other threads are blocked until the thread inside the synchronized block or method exits it.</p><p>Let's take a look at examples of synchronized blocks and functions and discuss some important aspects of protecting your code from being accessed by multiple threads concurrently.</p><h5 id="synchronized-functions">Synchronized functions</h5><p>Now then, functions are synchronized by the annotation <code class="language-kotlin">@Synchronized</code>.</p><p>Only one thread can execute code in a synchronized method of a particular instance. Meanwhile, different threads can execute methods of different objects at the same time. This can be summarized as <em>"one thread per instance"</em>.</p><p>Here is an example of a class with a single synchronized method named <code class="language-kotlin">doSomething()</code>. The class also has a constructor for distinguishing instances.</p><pre><code class="language-kotlin">class SomeClass(val className: String) {
+    @Synchronized
+    fun doSomething() {
+        val threadName = Thread.currentThread().name
+        println("$threadName entered the method of $className")
+        println("$threadName leaves the method of $className")
+    }
+}</code></pre><p>We have a class <code class="language-kotlin">MyThread</code> – it extends the <code class="language-kotlin">Thread</code> class and tries to call the method <code class="language-kotlin">doSomething()</code> of the instance which it takes as a parameter.</p><pre><code class="language-kotlin">class MyThread(val classInstance: SomeClass) : Thread() {
+    override fun run() {
+        classInstance.doSomething()
+    }
+}</code></pre><p>Let's create two instances of the class and three threads invoking <code class="language-kotlin">doSomething()</code>. The first and second threads take the same instance of the class, and the third thread takes a different one.</p><pre><code class="language-kotlin">val instance1 = SomeClass("instance-1")
+val instance2 = SomeClass("instance-2")
+
+val first = MyThread(instance1)
+val second = MyThread(instance1)
+val third = MyThread(instance2)
+
+first.start()
+second.start()
+third.start()</code></pre><p>The result will look like this:</p><pre><code class="language-no-highlight">Thread-0 entered the method of instance-1
+Thread-2 entered the method of instance-2
+Thread-0 leaves the method of instance-1
+Thread-1 entered the method of instance-1
+Thread-2 leaves the method of instance-2
+Thread-1 leaves the method of instance-1</code></pre><p>As you can see, there are no threads executing the code in <code class="language-kotlin">doSomething</code> of <code class="language-kotlin">instance-1</code> at the same time. Try running it several times.</p><h5 id="synchronized-blocks-statements">Synchronized blocks (statements)</h5><p>Sometimes, you need to synchronize only a part of a method. This is possible with the function <code class="language-kotlin">synchronized()</code>.</p><p>Here is a class with the <code class="language-kotlin">changeValue()</code> method, which is unsynchronized but has a synchronized part inside it, where we change the value of the <code class="language-kotlin">Someclass</code> instance.</p><pre><code class="language-kotlin">class SomeClass {
+    var value = 0
+    fun changeValue(newValue: Int) {
+
+        // unsynchronized code
+        print("I'd like to change the value for $newValue")
+        synchronized(this) { // synchronization on the class
+            // synchronized code
+            value = newValue
+        }
+        print("The value has been changed successfully!")
+    }
+}</code></pre><p>The block inside <code class="language-kotlin">changeValue()</code> is synchronized on <code class="language-kotlin">this</code> instance, which means that only one thread can change the value of the instance. However, some other thread is able to change the value of another instance at the same time.</p><p>Synchronized blocks may resemble synchronized methods, but they allow programmers to synchronize only the necessary part of a method.</p><h5 id="conclusion">Conclusion</h5><p>In this topic, you've learned about one of the most important mechanisms in multithreading – thread synchronization. This mechanism allows you to ensure the correct working of your code by protecting data from simultaneous changes by multiple threads.</p><p>Also, you've learned how you can implement thread synchronization in code:</p><ul><li><p>synchronize functions by using the annotation <code class="language-kotlin">@Synchronized</code>;</p></li><li><p>synchronize blocks or statements by using the function <code class="language-kotlin">synchronized()</code>.</p></li></ul><p>In the next topic, you'll learn what a monitor is and how thread synchronization works in Kotlin.</p>
+</div>

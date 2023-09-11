@@ -1,0 +1,28 @@
+<h2>Dealing with currency</h2>
+<div class="step-text">
+<p></p>
+<p>You have a class <code class="language-kotlin">BankAccount</code>, which has three methods: <code class="language-kotlin">addGold()</code>, <code class="language-kotlin">addSilver()</code>, and <code class="language-kotlin">addCopper()</code>. All these methods change your balance:</p>
+<pre><code class="language-kotlin">class BankAccount {
+    var balance = 0L
+
+    fun addMoney(action: String) {
+        when (action) {
+            "1" -&gt; addGold()
+            "2" -&gt; addSilver()
+            else -&gt; addCopper()
+        }
+    }
+
+    fun addGold() {
+        balance += 10000
+    }
+    fun addSilver() {
+        balance += 100
+    }
+    fun addCopper() {
+        balance += 1
+    }
+}</code></pre>
+<p>The program reads the number of threads and creates the threads that will change your balance.</p>
+<p>Use <strong>block synchronization</strong> to ensure the correct work of this program.</p><br><br><font color="gray">Memory limit: 256 MB</font><br><font color="gray">Time limit: 30 seconds</font><br><br>
+</div>

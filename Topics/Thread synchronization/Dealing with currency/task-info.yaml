@@ -1,0 +1,42 @@
+type: code
+files:
+  - name: src/Main.kt
+    visible: true
+    highlight_level: NONE
+    text: |-
+      @SuppressWarnings("MagicNumber")
+      class BankAccount {
+          var balance = 0L
+      
+          fun addMoney(action: String) {
+              // synchronize adding money with synchronized()
+              when (action) {
+                  "1" ->  ... {
+                      addGold()
+                  }
+                  "2" -> ... {
+                      addSilver()
+                  }
+                  else -> ... {
+                      addCopper()
+                  }
+              }
+          }
+          fun addGold() {
+              balance += 10000
+          }
+          fun addSilver() {
+              balance += 100
+          }
+          fun addCopper() {
+              balance += 1
+          }
+      }
+    learner_created: false
+feedback_link: https://hyperskill.org/learn/step/17878#comment
+status: Solved
+feedback:
+  message: <html>Correct solution</html>
+  time: "Thu, 07 Sep 2023 09:42:09 UTC"
+record: -1
+submission_language: kotlin
